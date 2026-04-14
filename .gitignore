@@ -8,3 +8,6 @@ user_data/
 # Python cache
 __pycache__/
 *.pyc
+
+# log
+cron_log.log
