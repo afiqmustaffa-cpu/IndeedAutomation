@@ -9,7 +9,15 @@ from datetime import datetime
 
 # --- FILE & API CONFIGURATION ---
 EXCEL_FILE = "Indeed Job Post.xlsx"
-TARGET_SHEET = "Url (Ifixx)" 
+
+
+#  —------------ !!!!!! READ THIS !!!!!! —------------
+#  Sheet2 you can create it by your self
+#  this Sheet2 is for testing only
+#  after you confirm the program is run successfully,
+#  you can change to Url (Ifixx)
+TARGET_SHEET = "Sheet2"
+
 WEBHOOK_URL = "https://api.watoolbox.com/webhooks/5DWKPOJ3O"
 GROUP_ID = "120363165584902535@g.us"
 
