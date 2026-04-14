@@ -11,3 +11,6 @@ __pycache__/
 
 # log
 cron_log.log
+
+# excel
+*.xlsx
