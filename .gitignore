@@ -1,0 +1,10 @@
+user_data/
+
+.venv/
+
+# env files
+.env
+
+# Python cache
+__pycache__/
+*.pyc
