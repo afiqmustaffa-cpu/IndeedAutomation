@@ -119,5 +119,4 @@ This system improves:
 
 Created by: **intern 656@automattor.com**
 
-GitHub:  
-https://github.com/MuhammadAqill
+GitHub: https://github.com/MuhammadAqill
