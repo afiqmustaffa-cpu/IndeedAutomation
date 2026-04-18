@@ -1,5 +1,5 @@
 import pandas as pd
-from dotenv import load_dotenv
+from dotenv import load_dotenv # 1. Imported
 from playwright_stealth import stealth
 from playwright.sync_api import sync_playwright
 import os
@@ -8,16 +8,13 @@ import random
 import requests
 from datetime import datetime
 
+# --- CRITICAL FIX: Load the environment variables from .env file ---
+load_dotenv() # 2. MUST CALL THIS FUNCTION
+
 # --- FILE & API CONFIGURATION ---
-EXCEL_FILE = "Indeed Job Post.xlsx"
-
-
-#  —------------ !!!!!! READ THIS !!!!!! —------------
-#  Sheet2 you can create it by your self
-#  this Sheet2 is for testing only
-#  after you confirm the program is run successfully,
-#  you can change to Url (Ifixx)
-SHEET_NAME = "Sheet2" 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EXCEL_FILE = os.path.join(BASE_DIR, "Indeed Job Post.xlsx")
+SHEET_NAME = "Url (Ifixx)"
 
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 GROUP_ID = os.getenv("GROUP_ID")
@@ -37,7 +34,12 @@ def get_all_valid_links():
         return []
 
 def send_to_watoolbox(message_text):
-    """Sends message using the official WaToolbox JSON schema from documentation"""
+    """Sends message using the official WaToolbox JSON schema"""
+    # Safety check for the Webhook URL
+    if not WEBHOOK_URL:
+        print("❌ ERROR: WEBHOOK_URL is missing! Check your .env file.")
+        return
+
     payload = {
         "action": "send-message",
         "type": "text",
@@ -48,6 +50,8 @@ def send_to_watoolbox(message_text):
         response = requests.post(WEBHOOK_URL, json=payload)
         if response.status_code != 200:
             print(f"Webhook Error: {response.text}")
+        else:
+            print(">>> [WHATSAPP] Notification Sent.")
     except Exception as e:
         print(f"WhatsApp Connection Error: {e}")
 
@@ -71,7 +75,25 @@ def send_whatsapp_and_terminal_report_close(current_url):
     # 2. Send to WhatsApp Group
     send_to_watoolbox(report)
 
+# --- FUNGSI TAMBAHAN UNTUK CLOUDFLARE ---
+def check_and_solve_cloudflare(page):
+    """Menyemak kehadiran Cloudflare dan menekan koordinat jika dikesan"""
+    if "Just a moment" in page.title() or page.locator("iframe[src*='cloudflare']").count() > 0:
+        print("\n[SECURITY] CLOUDFLARE DETECTED! Waiting 10s for stability...")
+        time.sleep(10)
+        print(f"Clicking verification coordinates (X:514, Y:209)...")
+        page.mouse.click(514, 209)
+        print("Waiting 15s for page transition...")
+        time.sleep(15)
+        return True
+    return False
+
 def main():
+    # Final check before starting
+    if not WEBHOOK_URL or not GROUP_ID:
+        print("❌ CRITICAL ERROR: API Credentials not loaded. Program stopped.")
+        return
+
     all_links = get_all_valid_links()
     if not all_links:
         print("Warning: No valid links found. Exiting...")
@@ -100,7 +122,6 @@ def main():
         print("="*60)
 
         # --- STEP 1: WARM UP ---
-        print("Step 1: Warm-up on Google...")
         page.goto("https://www.google.com")
         time.sleep(2)
         
@@ -109,18 +130,11 @@ def main():
         page.goto(all_links[0], wait_until="domcontentloaded")
         time.sleep(7) 
 
-        # Cloudflare detection
-        if "Just a moment" in page.title() or page.locator("iframe[src*='cloudflare']").count() > 0:
-            print("\nCLOUDFLARE DETECTED!")
-            # Automated verification wait based on your logic
-            time.sleep(50)
-            page.mouse.click(509, 218)  
-            print("Verification challenge clicked.")
-            time.sleep(10)
+        # Gunakan fungsi semakan Cloudflare
+        check_and_solve_cloudflare(page)
 
         print(f"\n--- Starting the Process: {len(all_links)} Links Found ---")
 
-        # --- START LOOPING THROUGH EACH LINK ---
         for index, current_link in enumerate(all_links, 1):
             print(f"\n[{index}/{len(all_links)}] Checking: {current_link}")
             
@@ -128,8 +142,10 @@ def main():
                 if index > 1:
                     page.goto(current_link, wait_until="domcontentloaded")
                     time.sleep(5)
+                
+                # --- TAMBAHAN: SENTIASA CEK CLOUDFLARE SETIAP KALI BUKA LINK ---
+                check_and_solve_cloudflare(page)
 
-                # Identify the status element
                 status_box = page.locator('div[data-testid="top-level-job-status"]').filter(visible=True).first
                 status_box.wait_for(state="visible", timeout=15000)
                 
@@ -143,30 +159,25 @@ def main():
 
                 else:
                     print(f">>> PROCESSING: Closing Job-{index}...")
-
-                    # 1. Open Menu
                     status_box.click()
                     time.sleep(3)
 
-                    # 2. Select Closed
                     try:
                         page.get_by_role("menuitem", name="Closed").click()
                     except:
                         page.get_by_text("Closed").first.click()
                     time.sleep(3)
 
-                    # --- COORDINATE CLICKS FOR CLOSING (UNTOUCHED) ---
-                    page.mouse.click(384, 418)  # Reason
+                    # COORDINATE CLICKS
+                    page.mouse.click(384, 418)
                     time.sleep(2)
-                    page.mouse.click(871, 523)  # Continue
+                    page.mouse.click(871, 523)
                     time.sleep(2)
-                    page.mouse.click(377, 526)  # Hiring on hold
+                    page.mouse.click(377, 526)
                     time.sleep(2)
-                    page.mouse.click(840, 598)  # Final Confirm
+                    page.mouse.click(840, 598)
                     
                     closed_jobs_count += 1
-                    
-                    # --- INDIVIDUAL MIRRORED REPORT ---
                     send_whatsapp_and_terminal_report_close(current_link)
 
             except Exception as e:
@@ -183,16 +194,8 @@ def main():
             f"Remarks: All {closed_jobs_count} previous jobs is successfully closed."
         )
 
-        print("\n" + "="*40)
-        print("FINAL SESSION SUMMARY:")
-        print(final_summary)
-        print("="*40 + "\n")
-        
-        # Send Final Summary using the corrected JSON schema
+        print("\n" + "="*40 + "\nFINAL SESSION SUMMARY:\n" + final_summary + "\n" + "="*40)
         send_to_watoolbox(final_summary)
-
-        print("\nALL CLOSE TASKS COMPLETED. PRESS ENTER TO EXIT.")
-        # input("")
         context.close()
 
 if __name__ == "__main__":
