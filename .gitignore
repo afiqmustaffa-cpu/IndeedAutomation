@@ -1,7 +1,5 @@
 user_data/
 
-.venv/
-
 # env files
 .env
 
