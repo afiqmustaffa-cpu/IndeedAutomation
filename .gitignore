@@ -3,6 +3,9 @@ user_data/
 # env files
 .env
 
+# chrome profile
+chrome_profile/
+
 #.venv folder
 .venv/
 
