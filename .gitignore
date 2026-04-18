@@ -3,6 +3,9 @@ user_data/
 # env files
 .env
 
+#.venv folder
+.venv/
+
 # Python cache
 __pycache__/
 *.pyc
